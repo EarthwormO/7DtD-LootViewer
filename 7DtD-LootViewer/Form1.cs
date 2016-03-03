@@ -386,6 +386,7 @@ namespace _7DtD_LootViewer
                     if (Decimal.TryParse(prob, out decValue))
                     {
                         tempLGContents.prob = decValue;
+                        tempLGContents.tempProbMod  = decValue;
                     }
 
                     //Determine if this is an Item, or a Group
