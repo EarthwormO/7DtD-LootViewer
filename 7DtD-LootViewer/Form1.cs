@@ -49,6 +49,7 @@ namespace _7DtD_LootViewer
             public bool incAll = false;
             public bool minmax = false;
             public decimal lgTotProb = 0;
+            public int useCount = 0;
             public List<lootGroupContents> contents = new List<lootGroupContents>();
         }
 
@@ -61,6 +62,7 @@ namespace _7DtD_LootViewer
             public bool incAll = false;
             public bool minmax = false;
             public string size = "";
+            public string name = "";
             public List<lootGroupContents> contents = new List<lootGroupContents>();
         }
 
@@ -68,7 +70,9 @@ namespace _7DtD_LootViewer
         private Dictionary<string, lootGroup> _lootGroups = new Dictionary<string, lootGroup>();
         private Dictionary<int, lootContainer> _lootContainer = new Dictionary<int, lootContainer>();
         public Dictionary<int, string> _containerNames = new Dictionary<int, string>();
+        public Dictionary<string, Dictionary<int, Decimal>> _LootProbTmpl = new Dictionary<string, Dictionary<int, Decimal>>();
         public List<string> _itemNames = new List<string>();
+
 
         private bool parseCount(string count, countParse countValues)
         {
@@ -126,21 +130,17 @@ namespace _7DtD_LootViewer
             }
         }
 
-        //private decimal getTotalProbabilty(string name)
-        //{
-        //    //Find the total of all Probabilty at the level of the Group = name
-        //    decimal tempProb=0;
-        //    if(_lootGroups[name].contents.Count < 1)
-        //    {
-        //        //Special programming for the "Empty" group
-        //        return 1;
-        //    }
-        //    foreach (lootGroupContents lGC in _lootGroups[name].contents)
-        //    {
-        //        tempProb += lGC.prob;
-        //    }
-        //    return tempProb;
-        //}
+        private Dictionary<int,string> getContainerBinding(Dictionary<int, lootContainer> tempcontainer)
+        {
+            //Take the Loot container Object and return just a List of IDs and Names
+            Dictionary<int, string> tempDict = new Dictionary<int, string>();
+            foreach(KeyValuePair<int, lootContainer> lc in tempcontainer)
+            {
+                tempDict.Add(lc.Key, lc.Key + ":" + lc.Value.name);
+            }
+            return tempDict;
+        }
+
 
         private List<lootGroupContents> explodeGroup(ref string groupName, ref lootGroupContents incGroupDetails)
         {
@@ -154,6 +154,9 @@ namespace _7DtD_LootViewer
             decimal groupTotProb = _lootGroups[groupName].lgTotProb;
             List<lootGroupContents> containerContents = new List<lootGroupContents>();
 
+            //Increment Count of Group Use, allows removal of unused Groups
+            _lootGroups[groupName].useCount++;
+
             foreach (lootGroupContents lGC in _lootGroups[groupName].contents)
             {
                 //Loop through each content, if it is an Item equate tempPropMod (probability modifier) and add to the outExploded List
@@ -166,8 +169,14 @@ namespace _7DtD_LootViewer
                     tempLGC.count = lGC.count;
                     tempLGC.minCount = lGC.minCount;
                     tempLGC.maxCount = lGC.maxCount;
-                    tempLGC.prob = lGC.prob;
+                    //tempLGC.prob = lGC.prob;
+                    tempLGC.prob = lGC.prob * incGroupDetails.prob;
                     List<lootGroupContents> subLGClist = new List<lootGroupContents>();
+                    if (incGroupDetails.prob == 30)
+                    {
+                        M_Output.AppendText("");
+                    }
+
                     subLGClist = explodeGroup(ref tempLGC.item, ref tempLGC);
 
                     //Take the returned sub list and equate the corrected ProbMod for items in the group.
@@ -200,7 +209,8 @@ namespace _7DtD_LootViewer
                     {
                         tempLGC.tempProbMod = 1;
                     }
-            
+                    tempLGC.tempProbMod = tempLGC.tempProbMod * incGroupDetails.prob;
+
                     //Since this is coming from an ExplodeGroup, the Item is from a group, set IsGroup to True
                     tempLGC.isGroup = true;
 
@@ -212,12 +222,59 @@ namespace _7DtD_LootViewer
             return containerContents;
         }
 
+        private void readProbTemplates(XmlNodeList ProbTmpl)
+        {
+            //Parse through the Loot XML pased in and load in Probability Templates
+            //Dictionary <String nameofTempl, List<int> MinLevel>
+            foreach (XmlElement pt in ProbTmpl)
+            {
+                //Check to ensure it is loading a ProbTemplate not a Loot Quality Template
+                string parentNode = pt.ParentNode.Name;
+                if (parentNode == "lootprobtemplate")
+                {
+                    string ProbTmplName = pt.ParentNode.Attributes["name"].Value;
+                    //Check to see if LootProbTmpl already exists
+                    if (!_LootProbTmpl.ContainsKey(ProbTmplName))
+                    {
+                        //Probability Template does not exist, create it
+                        Dictionary<int, Decimal> tempList = new Dictionary<int, Decimal>();
+                        _LootProbTmpl.Add(ProbTmplName,tempList);
+                    }
+                    //Dictionary ProbTmpl now exists, parse the line being worked, and add it to the List
+                    string level = pt.GetAttribute("level");
+                    string prob = pt.GetAttribute("prob");
+
+
+                    //Need to parse Level to Decimal (Minimum)
+                    decimal decLevel = 1;
+                    if (Decimal.TryParse(level.Substring(level.IndexOf(",")+1), out decLevel))
+                    {
+                        //Have Decimal Level (Which is a percent of Total Level), Equate to actual Level Int
+                        int levelInt = (int)Math.Floor(Decimal.Parse(T_MaxSkill.Text) * decLevel);
+
+                        decimal decProb = 1;
+                        if (Decimal.TryParse(prob, out decProb))
+                        {
+                            //Was able to successfully parse Level and Probability, add it to the Template
+                            _LootProbTmpl[ProbTmplName].Add(levelInt, decProb);
+                        }
+                    }
+                }
+
+
+            }
+        }
+
         private void B_Load_Click(object sender, EventArgs e)
         {
+            //Read Import file for all currently specified Container Names
             _containerNames = lootContainernames.getNames();
 
             XmlDocument doc = new XmlDocument();
             doc.Load(T_XMLFile.Text);
+
+            XmlNodeList ProbTmpl = doc.GetElementsByTagName("loot");
+            readProbTemplates(ProbTmpl);
 
             XmlNodeList itemRefList = doc.GetElementsByTagName("item");
 
@@ -228,6 +285,7 @@ namespace _7DtD_LootViewer
             emptyLGContents.item = "nothing";
             emptyLGContents.prob = 1;
             emptyLG.count = 1;
+            emptyLG.lgTotProb = 1;
             emptyLG.contents.Add(emptyLGContents);
             _lootGroups.Add("empty", emptyLG);
 
@@ -285,6 +343,7 @@ namespace _7DtD_LootViewer
                     countParse tempValue = new countParse();
                     string count = lg.GetAttribute("count");
                     string prob = lg.GetAttribute("prob");
+                    string probTmpl = lg.GetAttribute("loot_prob_template");
 
                     if (parseCount(count, tempValue))//Parse Count into its fields, if it fails, assume Count=1 by leaving it default.
                     {
@@ -299,6 +358,22 @@ namespace _7DtD_LootViewer
                     if (Decimal.TryParse(prob, out decValue))
                     {
                         tempLGContents.prob = decValue;
+                    }
+                    else
+                    {
+                        if(probTmpl != "")
+                        {
+                            //This is a Probability Template, not a Straight Probability, find the matching Probability Template and pull the Probability form there
+                            foreach(KeyValuePair<int,Decimal> kv in _LootProbTmpl[probTmpl])
+                            {
+                                if(Int32.Parse(T_Player.Text) < kv.Key)
+                                {
+                                    tempLGContents.prob = kv.Value;
+                                    break;
+                                }
+                            }
+                            M_Output.AppendText("");
+                        }
                     }
 
                     string name="";
@@ -344,6 +419,13 @@ namespace _7DtD_LootViewer
                         M_Output.AppendText("This is a Loot Container: " + containerID + Environment.NewLine);
 
                         lootContainer tempContainer = new lootContainer();
+
+                        //Attempt to lookup the Name of this Container ID, and add it if it exists
+                        if (!_containerNames.TryGetValue(containerID, out tempContainer.name))
+                        {
+                            //Container failed to get a name, add the Container ID to the _ContainerNames, with no name
+                            _containerNames.Add(containerID, "");
+                        }
 
                         //Parse the Count Value of the lootgroup
                         tempContainer.size = lg.ParentNode.Attributes["size"].Value; ;
@@ -409,7 +491,6 @@ namespace _7DtD_LootViewer
                         List<lootGroupContents> explodedContents = new List<lootGroupContents>();
                         explodedContents = explodeGroup(ref name, ref tempLGContents);
                         _lootContainer[containerID].contents.AddRange(explodedContents);
-                        
                     }
                     else
                     {
@@ -423,6 +504,12 @@ namespace _7DtD_LootViewer
 
             }
 
+            //Save All Found Container Names back to the XML File to allow user to edit it and add names for next run.
+            System.Xml.Linq.XElement el = new System.Xml.Linq.XElement("root", _containerNames.Select(kv => new System.Xml.Linq.XElement("ID" + kv.Key.ToString(), kv.Value)));
+            string fileName = "containernames.xml";
+            el.Save(fileName);
+
+
             M_Output.Clear();
             //Equate Container's Total Probability:
             foreach (KeyValuePair<int,lootContainer> lc in _lootContainer)
@@ -431,6 +518,13 @@ namespace _7DtD_LootViewer
                 M_Output.AppendText(Environment.NewLine);
 
                 decimal tempProb = 0;
+
+                //Added to break code for testing specific Containers
+                if (lc.Key == 5)
+                {
+                    M_Output.AppendText("");
+                }
+
                 foreach (lootGroupContents lGC in lc.Value.contents)
                 {
                     tempProb += lGC.tempProbMod;
@@ -452,13 +546,16 @@ namespace _7DtD_LootViewer
                     }
                 }
             }
-            V_LContainer.DataSource = new BindingSource(_lootContainer, null);
-            V_LContainer.DisplayMember = "Key";
+
+            V_LContainer.DataSource = new BindingSource(getContainerBinding(_lootContainer), null);
+            V_LContainer.DisplayMember = "Value";
             V_LContainer.ValueMember = "Key";
             V_LContainer.Refresh();
             V_LContainer.Enabled = true;
 
             _itemNames.Sort();
+
+            //Parse through the Containers and add Containers Witohut names to import file.
 
         }
 
@@ -470,14 +567,15 @@ namespace _7DtD_LootViewer
             if(r_Item.Checked)
             {
 
+                //Looking for all containers containing a specific Item
                 foreach (KeyValuePair<int, lootContainer> lc in _lootContainer)
                 {
                     List<lootGroupContents> tempLG = lc.Value.contents.FindAll(x => x.item == (string)V_LContainer.SelectedValue);
-                    if(tempLG.Count > 0)
+                    if (tempLG.Count > 0)
                     {
-                        foreach(lootGroupContents item in tempLG)
+                        foreach (lootGroupContents item in tempLG)
                         {
-                            M_Output.AppendText("Container: " + lc.Key + ", Prob in container: " + Math.Round(item.prob * 100, 2) + '%' + Environment.NewLine);
+                            M_Output.AppendText(lc.Key + ":" + lc.Value.name + ", Prob in container: " + Math.Round(item.prob * 100, 2) + '%' + Environment.NewLine);
                         }
                     }
                 }
@@ -485,11 +583,36 @@ namespace _7DtD_LootViewer
             }
             else
             {
-                List<lootGroupContents> SortedList = _lootContainer[(int)V_LContainer.SelectedValue].contents.OrderBy(o => o.item).ToList();
+                //Looking for all items in a Single container
+                List<lootGroupContents> SortedList;
+                if (r_Alpha.Checked)
+                {
+                    SortedList = _lootContainer[(int)V_LContainer.SelectedValue].contents.OrderBy(o => o.item).ToList();
+                }
+                else
+                {
+                    SortedList = _lootContainer[(int)V_LContainer.SelectedValue].contents.OrderByDescending(o => o.prob).ToList();
+                }
+
+                //List<lootGroupContents> SortedList = _lootContainer[(int)V_LContainer.SelectedValue].contents.OrderBy(o => o.item).ToList();
                 foreach (lootGroupContents item in SortedList)
                 {
-                    M_Output.AppendText("     " + item.item + ", " + Math.Round(item.prob * 100, 1) + '%' + Environment.NewLine);
+                    //Check for MinMax
+                    string tempCount = "Count: ";
+                    if (item.minmax) { tempCount += item.minCount.ToString() + "-" + item.maxCount.ToString(); } else { tempCount += item.count.ToString(); }
+                    M_Output.AppendText("     " + item.item + ", " + Math.Round(item.prob * 100, 1) + "%  " + tempCount + Environment.NewLine);
                 }
+                //Update Count Textbox
+                if (_lootContainer[(int)V_LContainer.SelectedValue].minmax)
+                {
+                    //There is a Min and Max, not just a 1
+                    T_Count.Text = _lootContainer[(int)V_LContainer.SelectedValue].minCount.ToString() + " - " + _lootContainer[(int)V_LContainer.SelectedValue].maxCount.ToString();
+                }
+                else
+                {
+                    T_Count.Text = _lootContainer[(int)V_LContainer.SelectedValue].count.ToString();
+                }
+                
             }
 
         }
@@ -500,18 +623,20 @@ namespace _7DtD_LootViewer
             if(r_Item.Checked)
                 {
                 //Search by Item Name
+                l_Filter.Text = "Item:";
                 V_LContainer.DataSource = _itemNames;
                 V_LContainer.Refresh();
                 V_LContainer.Enabled = true;
             }
             if (r_LC.Checked)
                 {
-                    //Search by Loot Container ID
-                    V_LContainer.DataSource = new BindingSource(_lootContainer, null);
-                    V_LContainer.DisplayMember = "Key";
-                    V_LContainer.ValueMember = "Key";
-                    V_LContainer.Refresh();
-                    V_LContainer.Enabled = true;
+                //Search by Loot Container ID
+                l_Filter.Text = "LootContainer:";
+                V_LContainer.DataSource = new BindingSource(getContainerBinding(_lootContainer), null);
+                V_LContainer.DisplayMember = "Value";
+                V_LContainer.ValueMember = "Key";
+                V_LContainer.Refresh();
+                V_LContainer.Enabled = true;
                 }
         }
 
@@ -523,6 +648,31 @@ namespace _7DtD_LootViewer
         private void r_Item_CheckedChanged(object sender, EventArgs e)
         {
             gb_SearchChanged();
+        }
+
+        private void B_ListGroups_Click(object sender, EventArgs e)
+        {
+            //List all Groups and their Count of uses
+            Dictionary<string, int> tempGroupList = new Dictionary<string, int>();
+            foreach (KeyValuePair<string,lootGroup> kv in _lootGroups)
+            {
+                tempGroupList.Add(kv.Key, kv.Value.useCount);
+            }
+            var sortedList = tempGroupList.ToList();
+            sortedList.Sort((k, v) => k.Value.CompareTo(v.Value));
+
+            M_Output.Clear();
+            M_Output.AppendText("Loot Groups defined in loot.xml" + Environment.NewLine);
+            foreach (KeyValuePair<string, int> kv in sortedList)
+            {
+                M_Output.AppendText("  " + kv.Key + ": " + kv.Value + Environment.NewLine);
+            }
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            //Test to output the Container IDs to XML File
         }
     }
 }
