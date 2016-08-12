@@ -52,7 +52,7 @@ namespace _7DtD_LootViewer
                 tempNames.Add(36, "Suitcase");
                 tempNames.Add(37, "Corpse");
                 tempNames.Add(38, "Zombie Fat");
-                tempNames.Add(39, "Shotgun Messiah");
+                tempNames.Add(39, "Shotgun Messiah not used");
                 tempNames.Add(40, "Munitions Box");
                 tempNames.Add(41, "Player Backpack");
                 tempNames.Add(42, "Gun Safe");

@@ -47,7 +47,6 @@
             this.T_MaxSkill = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
             this.T_Player = new System.Windows.Forms.TextBox();
-            this.button1 = new System.Windows.Forms.Button();
             this.gb_Search.SuspendLayout();
             this.gb_Sort.SuspendLayout();
             this.SuspendLayout();
@@ -236,22 +235,11 @@
             this.T_Player.TabIndex = 12;
             this.T_Player.Text = "1";
             // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(603, 130);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 14;
-            this.button1.Text = "Output";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
-            // 
             // LootViewer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(690, 484);
-            this.Controls.Add(this.button1);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.T_Player);
             this.Controls.Add(this.label3);
@@ -299,7 +287,6 @@
         private System.Windows.Forms.TextBox T_MaxSkill;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TextBox T_Player;
-        private System.Windows.Forms.Button button1;
     }
 }
 

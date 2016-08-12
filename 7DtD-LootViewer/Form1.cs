@@ -455,6 +455,7 @@ namespace _7DtD_LootViewer
                     countParse tempValue = new countParse();
                     string count = lg.GetAttribute("count");
                     string prob = lg.GetAttribute("prob");
+                    string probTmpl = lg.GetAttribute("loot_prob_template");
 
                     if (parseCount(count, tempValue))//Parse Count into its fields, if it fails, assume Count=1 by leaving it default.
                     {
@@ -469,6 +470,22 @@ namespace _7DtD_LootViewer
                     {
                         tempLGContents.prob = decValue;
                         tempLGContents.tempProbMod  = decValue;
+                    }
+                    else
+                    {
+                        if (probTmpl != "")
+                        {
+                            //This is a Probability Template, not a Straight Probability, find the matching Probability Template and pull the Probability form there
+                            foreach (KeyValuePair<int, Decimal> kv in _LootProbTmpl[probTmpl])
+                            {
+                                if (Int32.Parse(T_Player.Text) < kv.Key)
+                                {
+                                    tempLGContents.prob = kv.Value;
+                                    break;
+                                }
+                            }
+                            M_Output.AppendText("");
+                        }
                     }
 
                     //Determine if this is an Item, or a Group
@@ -670,9 +687,5 @@ namespace _7DtD_LootViewer
 
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            //Test to output the Container IDs to XML File
-        }
     }
 }
