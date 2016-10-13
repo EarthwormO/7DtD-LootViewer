@@ -216,7 +216,7 @@
             this.T_MaxSkill.Name = "T_MaxSkill";
             this.T_MaxSkill.Size = new System.Drawing.Size(43, 20);
             this.T_MaxSkill.TabIndex = 10;
-            this.T_MaxSkill.Text = "100";
+            this.T_MaxSkill.Text = "200";
             // 
             // label4
             // 

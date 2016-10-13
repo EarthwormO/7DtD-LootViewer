@@ -355,24 +355,24 @@ namespace _7DtD_LootViewer
 
                     //Try to parse Prob to a Decimal, if it fails assume it is a 1 by leaving it default.
                     decimal decValue;
-                    if (Decimal.TryParse(prob, out decValue))
+                    if (probTmpl != "")
                     {
-                        tempLGContents.prob = decValue;
+                        //This is a Probability Template, not a Straight Probability, find the matching Probability Template and pull the Probability form there
+                        foreach (KeyValuePair<int, Decimal> kv in _LootProbTmpl[probTmpl])
+                        {
+                            if (Int32.Parse(T_Player.Text) < kv.Key)
+                            {
+                                tempLGContents.prob = kv.Value;
+                                break;
+                            }
+                        }
+                        M_Output.AppendText("");
                     }
                     else
                     {
-                        if(probTmpl != "")
+                        if (Decimal.TryParse(prob, out decValue))
                         {
-                            //This is a Probability Template, not a Straight Probability, find the matching Probability Template and pull the Probability form there
-                            foreach(KeyValuePair<int,Decimal> kv in _LootProbTmpl[probTmpl])
-                            {
-                                if(Int32.Parse(T_Player.Text) < kv.Key)
-                                {
-                                    tempLGContents.prob = kv.Value;
-                                    break;
-                                }
-                            }
-                            M_Output.AppendText("");
+                            tempLGContents.prob = decValue;
                         }
                     }
 
@@ -466,25 +466,26 @@ namespace _7DtD_LootViewer
                     }
                     //Try to parse Prob to a Decimal, if it fails assume it is a 1 by leaving it default.
                     decimal decValue;
-                    if (Decimal.TryParse(prob, out decValue))
+                    if (probTmpl != "")
                     {
-                        tempLGContents.prob = decValue;
-                        tempLGContents.tempProbMod  = decValue;
+                        //This is a Probability Template, not a Straight Probability, find the matching Probability Template and pull the Probability form there
+                        foreach (KeyValuePair<int, Decimal> kv in _LootProbTmpl[probTmpl])
+                        {
+                            if (Int32.Parse(T_Player.Text) < kv.Key)
+                            {
+                                tempLGContents.prob = kv.Value;
+                                tempLGContents.tempProbMod = kv.Value;
+                                break;
+                            }
+                        }
+                        M_Output.AppendText("");
                     }
                     else
                     {
-                        if (probTmpl != "")
+                        if (Decimal.TryParse(prob, out decValue))
                         {
-                            //This is a Probability Template, not a Straight Probability, find the matching Probability Template and pull the Probability form there
-                            foreach (KeyValuePair<int, Decimal> kv in _LootProbTmpl[probTmpl])
-                            {
-                                if (Int32.Parse(T_Player.Text) < kv.Key)
-                                {
-                                    tempLGContents.prob = kv.Value;
-                                    break;
-                                }
-                            }
-                            M_Output.AppendText("");
+                            tempLGContents.prob = decValue;
+                            tempLGContents.tempProbMod = decValue;
                         }
                     }
 
@@ -588,11 +589,12 @@ namespace _7DtD_LootViewer
                 foreach (KeyValuePair<int, lootContainer> lc in _lootContainer)
                 {
                     List<lootGroupContents> tempLG = lc.Value.contents.FindAll(x => x.item == (string)V_LContainer.SelectedValue);
+
                     if (tempLG.Count > 0)
                     {
                         foreach (lootGroupContents item in tempLG)
                         {
-                            M_Output.AppendText(lc.Key + ":" + lc.Value.name + ", Prob in container: " + Math.Round(item.prob * 100, 2) + '%' + Environment.NewLine);
+                            M_Output.AppendText(lc.Key + ":" + lc.Value.name + ", Prob in container: " + Math.Round(item.prob * 100, 4) + '%' + Environment.NewLine);
                         }
                     }
                 }
@@ -617,7 +619,7 @@ namespace _7DtD_LootViewer
                     //Check for MinMax
                     string tempCount = "Count: ";
                     if (item.minmax) { tempCount += item.minCount.ToString() + "-" + item.maxCount.ToString(); } else { tempCount += item.count.ToString(); }
-                    M_Output.AppendText("     " + item.item + ", " + Math.Round(item.prob * 100, 1) + "%  " + tempCount + Environment.NewLine);
+                    M_Output.AppendText("     " + item.item + ", " + Math.Round(item.prob * 100, 4) + "%  " + tempCount + Environment.NewLine);
                 }
                 //Update Count Textbox
                 if (_lootContainer[(int)V_LContainer.SelectedValue].minmax)

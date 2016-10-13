@@ -76,10 +76,28 @@ namespace _7DtD_LootViewer
                 tempNames.Add(62, "Minibike Storage");
                 tempNames.Add(63, "Mountainman Chest");
                 tempNames.Add(64, "Gas Pump");
-                tempNames.Add(65, "Hazmat Gear");
+                tempNames.Add(65, "Zombie Hazmat");
                 tempNames.Add(66, "Zombie Lumberjack");
                 tempNames.Add(67, "Toilet");
                 tempNames.Add(68, "Dumpster");
+                tempNames.Add(69, "Unknown");
+                tempNames.Add(70, "Treasure Chest");
+                tempNames.Add(71, "Bandit Melee");
+                tempNames.Add(72, "Bandit Ranged");
+                tempNames.Add(73, "Zombie Soldier");
+                tempNames.Add(74, "Zombie Utility Worker");
+                tempNames.Add(75, "Mortician's Drawer");
+                tempNames.Add(76, "Furnace Drawer");
+                tempNames.Add(77, "Green Drawer");
+                tempNames.Add(78, "Zombie Footbal");
+                tempNames.Add(79, "Zombie Cheerleader");
+                tempNames.Add(80, "Zombie Scateboarder");
+                tempNames.Add(81, "Zombie OldTimer");
+                tempNames.Add(82, "Zombie Miner");
+                tempNames.Add(83, "Zombie Biker");
+                tempNames.Add(84, "Zombie Stripper");
+                tempNames.Add(85, "Zombie Farmer");
+
             }
 
             return tempNames;
